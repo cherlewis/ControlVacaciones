@@ -210,11 +210,11 @@
     <!-- Custom Notification/Message Modal -->
     <div id="messageModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 text-center">
-            <div id="messageIcon" class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4 text-xl">
+            <div id="messageIcon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
                 <i class="fa-solid fa-info"></i>
             </div>
             <h4 id="messageTitle" class="text-lg font-bold text-slate-900 mb-2">Mensaje</h4>
-            <p id="messageText" class="text-sm text-slate-600 mb-6">Texto del mensaje informativo.</p>
+            <p id="messageText" class="text-sm text-slate-600 mb-6 font-mono text-left break-words bg-slate-50 p-2 rounded border border-slate-100" style="max-height: 150px; overflow-y: auto;">Texto del mensaje informativo.</p>
             <button onclick="closeMessageModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 rounded-xl transition">Entendido</button>
         </div>
     </div>
@@ -226,10 +226,12 @@
     </footer>
 
     <script type="module">
+        // Importamos Firebase usando CDN directos para que funcione sin instaladores
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // TUS CREDENCIALES EXACTAS
         const firebaseConfig = {
           apiKey: "AIzaSyA4B7ccFJatxZ74uy3yt60U9JZm310NrIc",
           authDomain: "controlvacacioneshogar.firebaseapp.com",
@@ -248,40 +250,38 @@
         };
 
         let db, auth;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'controlvacacioneshogar-default';
+        const appId = 'controlvacacioneshogar-app';
 
         async function initFirebase() {
             try {
+                // 1. Inicializar app
                 const app = initializeApp(firebaseConfig);
+                
+                // 2. Inicializar servicios
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                // 3. Intentar Login Anónimo
+                await signInAnonymously(auth);
                 
                 document.getElementById('syncStatus').textContent = "Sincronizado con Firebase";
                 document.getElementById('syncStatus').className = "text-emerald-600 font-medium";
+                
+                // 4. Leer datos
                 subscribeToData();
 
             } catch (err) {
-                console.error("Error Firebase:", err);
+                // MODO DEBUG: Mostrar error exacto en pantalla si falla
+                const errorMessage = "Código: " + (err.code || 'N/A') + "\nMensaje: " + (err.message || err);
                 
-                let errorMessage = "Modo local (Sin conexión)";
-                
-                if (err.code === 'auth/operation-not-allowed' || err.code === 'auth/admin-restricted-operation') {
-                    errorMessage = "Falta activar Auth en Firebase";
-                    showCustomMessage(
-                        'Paso final requerido en Firebase', 
-                        'Para guardar en la nube, debes ir a la consola de Firebase > Authentication > Sign-in method, y habilitar el inicio de sesión "Anónimo".', 
-                        'fa-solid fa-triangle-exclamation', 
-                        'text-rose-600 bg-rose-50'
-                    );
-                }
+                showCustomMessage(
+                    '¡Error de Conexión Detectado!', 
+                    'Por favor, cópiale este texto al asistente para saber por qué falla:\n\n' + errorMessage, 
+                    'fa-solid fa-bug', 
+                    'text-rose-600 bg-rose-50'
+                );
 
-                document.getElementById('syncStatus').textContent = errorMessage;
+                document.getElementById('syncStatus').textContent = "Modo local (Sin conexión)";
                 document.getElementById('syncStatus').className = "text-rose-600 font-medium";
                 loadLocalFallback();
             }
@@ -290,7 +290,7 @@
         function subscribeToData() {
             if (!auth || !auth.currentUser) return;
             
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'vacation_records');
+            const docRef = doc(db, 'registros', 'vacaciones');
             onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -299,10 +299,18 @@
                         renderApp();
                     }
                 } else {
+                    // Si el documento no existe en la BD, lo crea por primera vez
                     saveCloudData();
                 }
-            }, (error) => {
-                console.error("Error al leer datos:", error);
+            }, (err) => {
+                // MODO DEBUG: Si falla la lectura de datos (por ejemplo, reglas de seguridad)
+                const errorMessage = "Código: " + (err.code || 'N/A') + "\nMensaje: " + (err.message || err);
+                showCustomMessage(
+                    'Error al leer base de datos', 
+                    'Error de permisos o lectura. Cópiale esto al asistente:\n\n' + errorMessage, 
+                    'fa-solid fa-lock', 
+                    'text-amber-600 bg-amber-50'
+                );
             });
         }
 
@@ -313,10 +321,16 @@
                 return;
             }
             try {
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'vacation_records');
+                const docRef = doc(db, 'registros', 'vacaciones');
                 await setDoc(docRef, window.appData);
             } catch (err) {
-                console.error("Error guardando en la nube:", err);
+                const errorMessage = "Código: " + (err.code || 'N/A') + "\nMensaje: " + (err.message || err);
+                showCustomMessage(
+                    'Error al guardar en la nube', 
+                    'No se pudo guardar. Cópiale esto al asistente:\n\n' + errorMessage, 
+                    'fa-solid fa-cloud-arrow-up', 
+                    'text-rose-600 bg-rose-50'
+                );
             }
         }
 
@@ -519,7 +533,8 @@
 
         window.showCustomMessage = function(title, text, iconClass, iconBoxClass) {
             document.getElementById('messageTitle').textContent = title;
-            document.getElementById('messageText').textContent = text;
+            // Usamos innerText para que respete los saltos de línea (\n) del error
+            document.getElementById('messageText').innerText = text;
             document.getElementById('messageIcon').className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl ${iconBoxClass}`;
             document.getElementById('messageIcon').innerHTML = `<i class="${iconClass}"></i>`;
             document.getElementById('messageModal').classList.remove('hidden');
@@ -529,10 +544,8 @@
             document.getElementById('messageModal').classList.add('hidden');
         }
 
-        // Llamamos a renderApp() instantáneamente para que la app cargue (Arregla el bug de los botones)
+        // Renderizado inicial seguro
         renderApp();
-        
-        // Arrancamos la conexión a Firebase en segundo plano
         initFirebase();
     </script>
 </body>
