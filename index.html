@@ -24,7 +24,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold text-slate-900">Control de Vacaciones</h1>
-                    <p class="text-xs text-slate-500">Gestión de Empleada del Hogar • <span id="syncStatus" class="text-amber-600 font-medium">Conectando en la nube...</span></p>
+                    <p class="text-xs text-slate-500">Gestión de Empleada del Hogar • <span id="syncStatus" class="text-amber-600 font-medium">Conectando a Firebase...</span></p>
                 </div>
             </div>
             <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
@@ -221,15 +221,24 @@
 
     <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
         <div class="max-w-6xl mx-auto px-4">
-            Gestión interna de vacaciones • Sincronización automática en la nube segura
+            Gestión interna de vacaciones • Sincronización automática con Firebase Cloud Firestore
         </div>
     </footer>
 
-    <!-- Firebase SDK Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Your custom Firebase configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyA4B7ccFJatxZ74uy3yt60U9JZm310NrIc",
+          authDomain: "controlvacacioneshogar.firebaseapp.com",
+          projectId: "controlvacacioneshogar",
+          storageBucket: "controlvacacioneshogar.firebasestorage.app",
+          messagingSenderId: "982125387061",
+          appId: "1:982125387061:web:bb5a41520c232a1214007c"
+        };
 
         // Global app state variables
         window.appData = {
@@ -241,16 +250,15 @@
         };
 
         let db, auth, userId;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'household-vacation-tracker-default';
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'controlvacacioneshogar-default';
 
         async function initFirebase() {
             try {
-                const firebaseConfig = JSON.parse(__firebase_config);
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // Authenticate first
+                // Authenticate with custom token if available, or anonymously
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
@@ -259,10 +267,10 @@
 
                 userId = auth.currentUser?.uid || crypto.randomUUID();
                 
-                document.getElementById('syncStatus').textContent = "Sincronizado en la nube";
+                document.getElementById('syncStatus').textContent = "Sincronizado con Firebase";
                 document.getElementById('syncStatus').className = "text-emerald-600 font-medium";
 
-                // Start real-time cloud data listener
+                // Start real-time cloud listener
                 subscribeToData();
 
             } catch (err) {
@@ -274,7 +282,7 @@
         }
 
         function subscribeToData() {
-            // Rule 1: Using public path for collaborative / persistent access across sessions
+            // Rule 1 compliant path
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'vacation_records');
             
             onSnapshot(docRef, (docSnap) => {
@@ -295,8 +303,7 @@
 
         window.saveCloudData = async function() {
             renderApp();
-            if (!db || !userId) {
-                // Fallback to localStorage if offline
+            if (!db) {
                 localStorage.setItem('household_vacation_data_offline', JSON.stringify(window.appData));
                 return;
             }
@@ -549,7 +556,7 @@
                         if (parsed && parsed.years) {
                             window.appData = parsed;
                             saveCloudData();
-                            showCustomMessage('Importación exitosa', 'Los datos se han cargado correctamente en la nube.', 'fa-solid fa-circle-check', 'text-emerald-600 bg-emerald-50');
+                            showCustomMessage('Importación exitosa', 'Los datos se han cargado correctamente en Firebase.', 'fa-solid fa-circle-check', 'text-emerald-600 bg-emerald-50');
                         } else {
                             throw new Error('Formato inválido');
                         }
