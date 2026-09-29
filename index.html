@@ -150,7 +150,7 @@
                 <div>
                     <p class="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Otras Ausencias</p>
                     <h3 id="kpiOthers" class="text-2xl font-bold text-slate-900 dark:text-white">0 días</h3>
-                    <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Bajas/Permisos</p>
+                    <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Bajas/Festivos</p>
                 </div>
             </div>
         </div>
@@ -163,8 +163,6 @@
                         <option value="ALL">Todos los tipos</option>
                         <option value="Vacaciones">Vacaciones</option>
                         <option value="Baja Médica">Baja Médica</option>
-                        <option value="Permiso Retribuido">Permiso Retribuido</option>
-                        <option value="Asuntos Propios">Asuntos Propios</option>
                         <option value="Festivo">Festivo</option>
                     </select>
                 </div>
@@ -215,8 +213,6 @@
                     <select id="formType" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="Vacaciones">Vacaciones</option>
                         <option value="Baja Médica">Baja Médica</option>
-                        <option value="Permiso Retribuido">Permiso Retribuido</option>
-                        <option value="Asuntos Propios">Asuntos Propios</option>
                         <option value="Festivo">Festivo</option>
                     </select>
                 </div>
@@ -402,8 +398,6 @@
                 let badgeClass = 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
                 if (item.type === 'Vacaciones') badgeClass = 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400';
                 else if (item.type === 'Baja Médica') badgeClass = 'bg-rose-50 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400';
-                else if (item.type === 'Permiso Retribuido') badgeClass = 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400';
-                else if (item.type === 'Asuntos Propios') badgeClass = 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400';
                 else if (item.type === 'Festivo') badgeClass = 'bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400';
 
                 tr.innerHTML = `
