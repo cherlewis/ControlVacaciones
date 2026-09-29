@@ -86,8 +86,8 @@
     <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
         
         <!-- Year Selector & Config Section -->
-        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 gap-4 transition-colors duration-200">
-            <div class="flex items-center space-x-3 w-full sm:w-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 gap-4 transition-colors duration-200">
+            <div class="flex items-center space-x-3 w-full md:w-auto">
                 <span class="text-sm font-semibold text-slate-600 dark:text-slate-400">Año de Referencia:</span>
                 <select id="selectedYear" onchange="changeYear()" class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="2026">2026</option>
@@ -95,13 +95,30 @@
                     <option value="2024">2024</option>
                 </select>
             </div>
-            <div class="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end">
-                <div class="text-xs text-slate-500 dark:text-slate-400">
-                    Días Totales Anuales de Vacaciones: <span id="totalVacationDaysText" class="font-bold text-slate-800 dark:text-white">30</span>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-6 w-full md:w-auto bg-slate-50 dark:bg-slate-900/50 p-3 sm:p-0 sm:bg-transparent sm:dark:bg-transparent rounded-xl">
+                
+                <!-- Días Base -->
+                <div class="flex items-center space-x-2">
+                    <div class="text-xs text-slate-500 dark:text-slate-400">
+                        Base anual: <span id="baseDaysText" class="font-bold text-slate-800 dark:text-white text-sm">30</span>
+                    </div>
+                    <button onclick="editBaseDays()" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 px-2.5 py-1 rounded-lg transition" title="Editar días base">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
                 </div>
-                <button onclick="editTotalDays()" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 px-3 py-1.5 rounded-lg transition">
-                    Cambiar
-                </button>
+                
+                <div class="hidden sm:block text-slate-300 dark:text-slate-700">|</div>
+
+                <!-- Días Arrastrados -->
+                <div class="flex items-center space-x-2">
+                    <div class="text-xs text-slate-500 dark:text-slate-400">
+                        Acumulados año anterior: <span id="carryoverDaysText" class="font-bold text-amber-600 dark:text-amber-500 text-sm">0</span>
+                    </div>
+                    <button onclick="editCarryoverDays()" class="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 px-2.5 py-1 rounded-lg transition" title="Editar días acumulados">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                </div>
+
             </div>
         </div>
 
@@ -113,7 +130,7 @@
                     <i class="fa-solid fa-umbrella-beach text-xl"></i>
                 </div>
                 <div>
-                    <p class="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vacaciones Anuales</p>
+                    <p class="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Disponibles</p>
                     <h3 id="kpiTotal" class="text-2xl font-bold text-slate-900 dark:text-white">30 días</h3>
                 </div>
             </div>
@@ -150,7 +167,7 @@
                 <div>
                     <p class="text-xs font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider">Otras Ausencias</p>
                     <h3 id="kpiOthers" class="text-2xl font-bold text-slate-900 dark:text-white">0 días</h3>
-                    <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Bajas</p>
+                    <p class="text-xs text-purple-600 dark:text-purple-400 mt-0.5">Bajas/Festivos</p>
                 </div>
             </div>
         </div>
@@ -163,6 +180,7 @@
                         <option value="ALL">Todos los tipos</option>
                         <option value="Vacaciones">Vacaciones</option>
                         <option value="Baja Médica">Baja Médica</option>
+                        <option value="Festivo">Festivo</option>
                     </select>
                 </div>
             </div>
@@ -212,6 +230,7 @@
                     <select id="formType" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <option value="Vacaciones">Vacaciones</option>
                         <option value="Baja Médica">Baja Médica</option>
+                        <option value="Festivo">Festivo</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -275,9 +294,9 @@
 
         window.appData = {
             years: {
-                "2026": { totalVacationDays: 30, absences: [] },
-                "2025": { totalVacationDays: 30, absences: [] },
-                "2024": { totalVacationDays: 30, absences: [] }
+                "2026": { totalVacationDays: 30, carryoverDays: 0, absences: [] },
+                "2025": { totalVacationDays: 30, carryoverDays: 0, absences: [] },
+                "2024": { totalVacationDays: 30, carryoverDays: 0, absences: [] }
             }
         };
 
@@ -288,6 +307,7 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
+                
                 await signInAnonymously(auth);
                 
                 document.getElementById('syncStatus').textContent = "Sincronizado con Firebase";
@@ -297,7 +317,18 @@
             } catch (err) {
                 document.getElementById('syncStatus').textContent = "Modo local (Sin conexión)";
                 document.getElementById('syncStatus').className = "text-rose-600 dark:text-rose-400 font-medium";
-                loadLocalFallback();
+                
+                // Pantalla gigante de error si falla la conexión
+                document.body.innerHTML = `
+                    <div style="padding:40px; text-align:center; font-family:sans-serif; background:#fef2f2; height:100vh; color:#991b1b;">
+                        <h1 style="font-size:24px; font-weight:bold; margin-bottom:10px;">¡Ups! Conexión a Firebase bloqueada</h1>
+                        <p style="margin-bottom:20px;">Por favor, copia el texto rojo de abajo y compártelo con el asistente para arreglarlo:</p>
+                        <div style="background:white; padding:20px; border-radius:8px; border:2px solid #f87171; font-family:monospace; color:#dc2626; text-align:left; max-width:600px; margin:0 auto; overflow-wrap: break-word;">
+                            ${err.message}
+                        </div>
+                        <p style="margin-top:20px; font-size:14px; color:#7f1d1d;">(También puedes pulsar F5 para reintentar)</p>
+                    </div>
+                `;
             }
         }
 
@@ -351,21 +382,31 @@
 
         window.renderApp = function() {
             const year = getCurrentYear();
-            if (!window.appData.years[year]) window.appData.years[year] = { totalVacationDays: 30, absences: [] };
+            
+            // Garantizar que la estructura existe (compatibilidad hacia atrás)
+            if (!window.appData.years[year]) window.appData.years[year] = { totalVacationDays: 30, carryoverDays: 0, absences: [] };
             
             const yearData = window.appData.years[year];
-            document.getElementById('totalVacationDaysText').textContent = yearData.totalVacationDays;
-            document.getElementById('kpiTotal').textContent = yearData.totalVacationDays + ' días';
+            const baseDays = yearData.totalVacationDays || 30;
+            const carryoverDays = yearData.carryoverDays || 0;
+            const totalAvailable = baseDays + carryoverDays;
+
+            // Actualizar textos en la cabecera
+            document.getElementById('baseDaysText').textContent = baseDays;
+            document.getElementById('carryoverDaysText').textContent = carryoverDays;
+            
+            // Actualizar tarjeta principal
+            document.getElementById('kpiTotal').textContent = totalAvailable + ' días';
 
             let usedVacation = 0, otherAbsencesDays = 0;
-            yearData.absences.forEach(item => {
+            (yearData.absences || []).forEach(item => {
                 const days = parseFloat(item.days) || 0;
                 if (item.type === 'Vacaciones') usedVacation += days;
                 else otherAbsencesDays += days;
             });
 
             document.getElementById('kpiUsed').textContent = usedVacation + ' días';
-            document.getElementById('kpiPending').textContent = Math.max(0, yearData.totalVacationDays - usedVacation) + ' días';
+            document.getElementById('kpiPending').textContent = Math.max(0, totalAvailable - usedVacation) + ' días';
             document.getElementById('kpiOthers').textContent = otherAbsencesDays + ' días';
             renderTable();
         }
@@ -378,7 +419,7 @@
             const emptyState = document.getElementById('emptyState');
             
             tbody.innerHTML = '';
-            let filtered = yearData.absences;
+            let filtered = yearData.absences || [];
             if (filterType !== 'ALL') filtered = filtered.filter(item => item.type === filterType);
             filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
@@ -396,7 +437,8 @@
                 let badgeClass = 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300';
                 if (item.type === 'Vacaciones') badgeClass = 'bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400';
                 else if (item.type === 'Baja Médica') badgeClass = 'bg-rose-50 text-rose-700 dark:bg-rose-900/40 dark:text-rose-400';
-                
+                else if (item.type === 'Festivo') badgeClass = 'bg-purple-50 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400';
+
                 tr.innerHTML = `
                     <td class="py-4 px-6 font-medium"><span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${badgeClass}">${item.type}</span></td>
                     <td class="py-4 px-6">${formatDateStr(item.startDate)}</td>
@@ -492,11 +534,23 @@
             saveCloudData();
         }
 
-        window.editTotalDays = function() {
+        // --- Nuevas funciones de edición divididas ---
+        window.editBaseDays = function() {
             const year = getCurrentYear();
-            const newTotal = parseFloat(prompt('Total de días de vacaciones anuales:', window.appData.years[year].totalVacationDays));
+            const currentBase = window.appData.years[year].totalVacationDays || 30;
+            const newTotal = parseFloat(prompt('Días de vacaciones base para el año:', currentBase));
             if (!isNaN(newTotal) && newTotal >= 0) {
                 window.appData.years[year].totalVacationDays = newTotal;
+                saveCloudData();
+            }
+        }
+
+        window.editCarryoverDays = function() {
+            const year = getCurrentYear();
+            const currentCarryover = window.appData.years[year].carryoverDays || 0;
+            const newCarryover = parseFloat(prompt('Días acumulados (arrastrados) del año anterior:', currentCarryover));
+            if (!isNaN(newCarryover) && newCarryover >= 0) {
+                window.appData.years[year].carryoverDays = newCarryover;
                 saveCloudData();
             }
         }
@@ -539,7 +593,7 @@
             document.getElementById('messageModal').classList.add('hidden');
         }
 
-        renderApp();
+        // Inicializar
         initFirebase();
     </script>
 </body>
