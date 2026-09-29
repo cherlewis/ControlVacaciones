@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Vacaciones y Ausencias</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md">
+                    <i class="fa-solid fa-calendar-days text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900">Control de Vacaciones</h1>
+                    <p class="text-xs text-slate-500">Gestión de Empleada del Hogar • <span id="syncStatus" class="text-amber-600 font-medium">Conectando en la nube...</span></p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+                <button onclick="openModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center">
+                    <i class="fa-solid fa-plus"></i> Registrar Ausencia
+                </button>
+                <button onclick="exportData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-3 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer" title="Exportar respaldo JSON">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+                <label class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-3 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer" title="Importar datos">
+                    <i class="fa-solid fa-upload"></i>
+                    <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+        
+        <!-- Year Selector & Config Section -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 gap-4">
+            <div class="flex items-center space-x-3 w-full sm:w-auto">
+                <span class="text-sm font-semibold text-slate-600">Año de Referencia:</span>
+                <select id="selectedYear" onchange="changeYear()" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+            </div>
+            <div class="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end">
+                <div class="text-xs text-slate-500">
+                    Días Totales Anuales de Vacaciones: <span id="totalVacationDaysText" class="font-bold text-slate-800">30</span>
+                </div>
+                <button onclick="editTotalDays()" class="text-indigo-600 hover:text-indigo-800 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition">
+                    Cambiar
+                </button>
+            </div>
+        </div>
+
+        <!-- KPI Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <!-- Vacaciones Totales -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                <div class="bg-blue-50 text-blue-600 p-4 rounded-xl">
+                    <i class="fa-solid fa-umbrella-beach text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Vacaciones Anuales</p>
+                    <h3 id="kpiTotal" class="text-2xl font-bold text-slate-900">30 días</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Estipuladas por ley</p>
+                </div>
+            </div>
+
+            <!-- Vacaciones Disfrutadas -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                <div class="bg-emerald-50 text-emerald-600 p-4 rounded-xl">
+                    <i class="fa-solid fa-check-circle text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Disfrutadas</p>
+                    <h3 id="kpiUsed" class="text-2xl font-bold text-slate-900">0 días</h3>
+                    <p class="text-xs text-emerald-600 mt-0.5" id="kpiUsedSub">Este año</p>
+                </div>
+            </div>
+
+            <!-- Vacaciones Pendientes -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                <div class="bg-amber-50 text-amber-600 p-4 rounded-xl">
+                    <i class="fa-solid fa-hourglass-half text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Pendientes</p>
+                    <h3 id="kpiPending" class="text-2xl font-bold text-slate-900">30 días</h3>
+                    <p class="text-xs text-amber-600 mt-0.5">Por disfrutar</p>
+                </div>
+            </div>
+
+            <!-- Otras Ausencias (Bajas, permisos...) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center space-x-4">
+                <div class="bg-purple-50 text-purple-600 p-4 rounded-xl">
+                    <i class="fa-solid fa-notes-medical text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Otras Ausencias</p>
+                    <h3 id="kpiOthers" class="text-2xl font-bold text-slate-900">0 días</h3>
+                    <p class="text-xs text-purple-600 mt-0.5">Bajas/Permisos</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <h2 class="text-lg font-bold text-slate-900">Historial de Registros</h2>
+                <div class="flex items-center space-x-3 w-full sm:w-auto">
+                    <select id="filterType" onchange="renderTable()" class="bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto">
+                        <option value="ALL">Todos los tipos</option>
+                        <option value="Vacaciones">Vacaciones</option>
+                        <option value="Baja Médica">Baja Médica</option>
+                        <option value="Permiso Retribuido">Permiso Retribuido</option>
+                        <option value="Asuntos Propios">Asuntos Propios</option>
+                        <option value="Festivo">Festivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3 px-6">Tipo</th>
+                            <th class="py-3 px-6">Fecha Inicio</th>
+                            <th class="py-3 px-6">Fecha Fin</th>
+                            <th class="py-3 px-6">Días</th>
+                            <th class="py-3 px-6">Observaciones</th>
+                            <th class="py-3 px-6 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="absenceTableBody" class="divide-y divide-slate-100 text-sm text-slate-700">
+                        <!-- Rows dynamically inserted via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty state -->
+            <div id="emptyState" class="hidden p-12 text-center">
+                <div class="text-slate-300 text-4xl mb-3">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+                <p class="text-slate-500 font-medium">No hay registros para este año o filtro.</p>
+                <p class="text-xs text-slate-400 mt-1">Pulsa en "Registrar Ausencia" para añadir la primera.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="absenceModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-xl max-w-md w-full overflow-hidden transform transition-all">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-900">Registrar Nueva Ausencia</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="absenceForm" onsubmit="saveAbsence(event)" class="p-6 space-y-4">
+                <input type="hidden" id="absenceId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Tipo de Registro</label>
+                    <select id="formType" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Vacaciones">Vacaciones</option>
+                        <option value="Baja Médica">Baja Médica</option>
+                        <option value="Permiso Retribuido">Permiso Retribuido</option>
+                        <option value="Asuntos Propios">Asuntos Propios</option>
+                        <option value="Festivo">Festivo</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Fecha Inicio</label>
+                        <input type="date" id="formStartDate" required onchange="calculateDays()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Fecha Fin</label>
+                        <input type="date" id="formEndDate" required onchange="calculateDays()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Número de Días</label>
+                    <input type="number" id="formDays" min="0.5" step="0.5" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-[11px] text-slate-400 mt-1">Calculado automáticamente o ajústalo manualmente.</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Observaciones (Opcional)</label>
+                    <textarea id="formNotes" rows="2" placeholder="Ej. Viaje familiar, cita médica..." class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition">Cancelar</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-5 py-2 rounded-xl shadow-sm transition">Guardar Registro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Notification/Message Modal -->
+    <div id="messageModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-xl max-w-sm w-full p-6 text-center">
+            <div id="messageIcon" class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto mb-4 text-xl">
+                <i class="fa-solid fa-info"></i>
+            </div>
+            <h4 id="messageTitle" class="text-lg font-bold text-slate-900 mb-2">Mensaje</h4>
+            <p id="messageText" class="text-sm text-slate-600 mb-6">Texto del mensaje informativo.</p>
+            <button onclick="closeMessageModal()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 rounded-xl transition">Entendido</button>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+        <div class="max-w-6xl mx-auto px-4">
+            Gestión interna de vacaciones • Sincronización automática en la nube segura
+        </div>
+    </footer>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global app state variables
+        window.appData = {
+            years: {
+                "2026": { totalVacationDays: 30, absences: [] },
+                "2025": { totalVacationDays: 30, absences: [] },
+                "2024": { totalVacationDays: 30, absences: [] }
+            }
+        };
+
+        let db, auth, userId;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'household-vacation-tracker-default';
+
+        async function initFirebase() {
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authenticate first
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                
+                document.getElementById('syncStatus').textContent = "Sincronizado en la nube";
+                document.getElementById('syncStatus').className = "text-emerald-600 font-medium";
+
+                // Start real-time cloud data listener
+                subscribeToData();
+
+            } catch (err) {
+                console.error("Firebase initialization error:", err);
+                document.getElementById('syncStatus').textContent = "Modo local (Sin conexión)";
+                document.getElementById('syncStatus').className = "text-rose-600 font-medium";
+                loadLocalFallback();
+            }
+        }
+
+        function subscribeToData() {
+            // Rule 1: Using public path for collaborative / persistent access across sessions
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'vacation_records');
+            
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data && data.years) {
+                        window.appData = data;
+                        renderApp();
+                    }
+                } else {
+                    // Initialize document if empty
+                    saveCloudData();
+                }
+            }, (error) => {
+                console.error("Error reading cloud data:", error);
+            });
+        }
+
+        window.saveCloudData = async function() {
+            renderApp();
+            if (!db || !userId) {
+                // Fallback to localStorage if offline
+                localStorage.setItem('household_vacation_data_offline', JSON.stringify(window.appData));
+                return;
+            }
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'vacation_records');
+                await setDoc(docRef, window.appData);
+            } catch (err) {
+                console.error("Error saving to cloud:", err);
+            }
+        }
+
+        function loadLocalFallback() {
+            const saved = localStorage.getItem('household_vacation_data_offline');
+            if (saved) {
+                try {
+                    window.appData = JSON.parse(saved);
+                } catch(e) {}
+            }
+            renderApp();
+        }
+
+        window.getCurrentYear = function() {
+            return document.getElementById('selectedYear').value;
+        }
+
+        window.changeYear = function() {
+            renderApp();
+        }
+
+        window.renderApp = function() {
+            const year = getCurrentYear();
+            if (!window.appData.years[year]) {
+                window.appData.years[year] = { totalVacationDays: 30, absences: [] };
+            }
+            const yearData = window.appData.years[year];
+
+            document.getElementById('totalVacationDaysText').textContent = yearData.totalVacationDays;
+            document.getElementById('kpiTotal').textContent = yearData.totalVacationDays + ' días';
+
+            let usedVacation = 0;
+            let otherAbsencesDays = 0;
+
+            yearData.absences.forEach(item => {
+                const days = parseFloat(item.days) || 0;
+                if (item.type === 'Vacaciones') {
+                    usedVacation += days;
+                } else {
+                    otherAbsencesDays += days;
+                }
+            });
+
+            const pendingVacation = Math.max(0, yearData.totalVacationDays - usedVacation);
+
+            document.getElementById('kpiUsed').textContent = usedVacation + ' días';
+            document.getElementById('kpiPending').textContent = pendingVacation + ' días';
+            document.getElementById('kpiOthers').textContent = otherAbsencesDays + ' días';
+
+            renderTable();
+        }
+
+        window.renderTable = function() {
+            const year = getCurrentYear();
+            const yearData = window.appData.years[year];
+            const filterType = document.getElementById('filterType').value;
+            const tbody = document.getElementById('absenceTableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            tbody.innerHTML = '';
+
+            let filtered = yearData.absences;
+            if (filterType !== 'ALL') {
+                filtered = filtered.filter(item => item.type === filterType);
+            }
+
+            filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            filtered.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 transition';
+
+                let badgeClass = 'bg-slate-100 text-slate-700';
+                if (item.type === 'Vacaciones') badgeClass = 'bg-blue-50 text-blue-700';
+                else if (item.type === 'Baja Médica') badgeClass = 'bg-rose-50 text-rose-700';
+                else if (item.type === 'Permiso Retribuido') badgeClass = 'bg-emerald-50 text-emerald-700';
+                else if (item.type === 'Asuntos Propios') badgeClass = 'bg-amber-50 text-amber-700';
+                else if (item.type === 'Festivo') badgeClass = 'bg-purple-50 text-purple-700';
+
+                tr.innerHTML = `
+                    <td class="py-4 px-6 font-medium">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${badgeClass}">
+                            ${item.type}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 text-slate-600">${formatDateStr(item.startDate)}</td>
+                    <td class="py-4 px-6 text-slate-600">${formatDateStr(item.endDate)}</td>
+                    <td class="py-4 px-6 font-semibold text-slate-800">${item.days} ${item.days == 1 ? 'día' : 'días'}</td>
+                    <td class="py-4 px-6 text-slate-500 max-w-xs truncate">${item.notes || '<span class="text-slate-300 italic">Sin observaciones</span>'}</td>
+                    <td class="py-4 px-6 text-right space-x-2">
+                        <button onclick="editAbsence('${item.id}')" class="text-slate-400 hover:text-indigo-600 p-1.5 transition" title="Editar">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteAbsence('${item.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 transition" title="Eliminar">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function formatDateStr(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        window.openModal = function(id = null) {
+            const modal = document.getElementById('absenceModal');
+            const form = document.getElementById('absenceForm');
+            form.reset();
+            document.getElementById('absenceId').value = '';
+            document.getElementById('modalTitle').textContent = 'Registrar Nueva Ausencia';
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('formStartDate').value = todayStr;
+            document.getElementById('formEndDate').value = todayStr;
+            document.getElementById('formDays').value = 1;
+
+            if (id) {
+                const year = getCurrentYear();
+                const item = window.appData.years[year].absences.find(x => x.id === id);
+                if (item) {
+                    document.getElementById('modalTitle').textContent = 'Editar Ausencia';
+                    document.getElementById('absenceId').value = item.id;
+                    document.getElementById('formType').value = item.type;
+                    document.getElementById('formStartDate').value = item.startDate;
+                    document.getElementById('formEndDate').value = item.endDate;
+                    document.getElementById('formDays').value = item.days;
+                    document.getElementById('formNotes').value = item.notes || '';
+                }
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        window.closeModal = function() {
+            document.getElementById('absenceModal').classList.add('hidden');
+        }
+
+        window.calculateDays = function() {
+            const start = document.getElementById('formStartDate').value;
+            const end = document.getElementById('formEndDate').value;
+            if (start && end) {
+                const startDate = new Date(start);
+                const endDate = new Date(end);
+                if (endDate >= startDate) {
+                    const diffTime = Math.abs(endDate - startDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                    document.getElementById('formDays').value = diffDays;
+                }
+            }
+        }
+
+        window.saveAbsence = function(event) {
+            event.preventDefault();
+            const year = getCurrentYear();
+            const id = document.getElementById('absenceId').value;
+            const type = document.getElementById('formType').value;
+            const startDate = document.getElementById('formStartDate').value;
+            const endDate = document.getElementById('formEndDate').value;
+            const days = parseFloat(document.getElementById('formDays').value);
+            const notes = document.getElementById('formNotes').value;
+
+            if (new Date(endDate) < new Date(startDate)) {
+                showCustomMessage('Error en fechas', 'La fecha de fin no puede ser anterior a la fecha de inicio.', 'fa-solid fa-triangle-exclamation', 'text-rose-600 bg-rose-50');
+                return;
+            }
+
+            if (!window.appData.years[year]) {
+                window.appData.years[year] = { totalVacationDays: 30, absences: [] };
+            }
+
+            if (id) {
+                const index = window.appData.years[year].absences.findIndex(x => x.id === id);
+                if (index !== -1) {
+                    window.appData.years[year].absences[index] = { id, type, startDate, endDate, days, notes };
+                }
+            } else {
+                const newId = 'abs_' + Date.now() + Math.random().toString(36.substr(2, 5));
+                window.appData.years[year].absences.push({ id: newId, type, startDate, endDate, days, notes });
+            }
+
+            saveCloudData();
+            closeModal();
+        }
+
+        window.editAbsence = function(id) {
+            openModal(id);
+        }
+
+        window.deleteAbsence = function(id) {
+            const year = getCurrentYear();
+            window.appData.years[year].absences = window.appData.years[year].absences.filter(x => x.id !== id);
+            saveCloudData();
+        }
+
+        window.editTotalDays = function() {
+            const year = getCurrentYear();
+            const currentTotal = window.appData.years[year] ? window.appData.years[year].totalVacationDays : 30;
+            const newTotalStr = prompt('Introduce el total de días de vacaciones anuales para ' + year + ':', currentTotal);
+            if (newTotalStr !== null) {
+                const newTotal = parseFloat(newTotalStr);
+                if (!isNaN(newTotal) && newTotal >= 0) {
+                    if (!window.appData.years[year]) {
+                        window.appData.years[year] = { totalVacationDays: 30, absences: [] };
+                    }
+                    window.appData.years[year].totalVacationDays = newTotal;
+                    saveCloudData();
+                } else {
+                    showCustomMessage('Valor inválido', 'Por favor, introduce un número válido.', 'fa-solid fa-triangle-exclamation', 'text-rose-600 bg-rose-50');
+                }
+            }
+        }
+
+        window.exportData = function() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "registro_vacaciones_empleada.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        window.importData = function(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = function(e) {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        if (parsed && parsed.years) {
+                            window.appData = parsed;
+                            saveCloudData();
+                            showCustomMessage('Importación exitosa', 'Los datos se han cargado correctamente en la nube.', 'fa-solid fa-circle-check', 'text-emerald-600 bg-emerald-50');
+                        } else {
+                            throw new Error('Formato inválido');
+                        }
+                    } catch (err) {
+                        showCustomMessage('Error de importación', 'El archivo no tiene el formato correcto.', 'fa-solid fa-triangle-exclamation', 'text-rose-600 bg-rose-50');
+                    }
+                };
+            }
+        }
+
+        window.showCustomMessage = function(title, text, iconClass = 'fa-solid fa-info', iconBoxClass = 'text-indigo-600 bg-indigo-50') {
+            document.getElementById('messageTitle').textContent = title;
+            document.getElementById('messageText').textContent = text;
+            const iconDiv = document.getElementById('messageIcon');
+            iconDiv.className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl ${iconBoxClass}`;
+            iconDiv.innerHTML = `<i class="${iconClass}"></i>`;
+            document.getElementById('messageModal').classList.remove('hidden');
+        }
+
+        window.closeMessageModal = function() {
+            document.getElementById('messageModal').classList.add('hidden');
+        }
+
+        // Start initialization on window load
+        window.onload = function() {
+            initFirebase();
+        };
+    </script>
+</body>
+</html>
