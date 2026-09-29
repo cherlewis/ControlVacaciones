@@ -230,7 +230,6 @@
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Your custom Firebase configuration
         const firebaseConfig = {
           apiKey: "AIzaSyA4B7ccFJatxZ74uy3yt60U9JZm310NrIc",
           authDomain: "controlvacacioneshogar.firebaseapp.com",
@@ -240,7 +239,6 @@
           appId: "1:982125387061:web:bb5a41520c232a1214007c"
         };
 
-        // Global app state variables
         window.appData = {
             years: {
                 "2026": { totalVacationDays: 30, absences: [] },
@@ -249,7 +247,7 @@
             }
         };
 
-        let db, auth, userId;
+        let db, auth;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'controlvacacioneshogar-default';
 
         async function initFirebase() {
@@ -258,33 +256,41 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
 
-                // Authenticate with custom token if available, or anonymously
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
-
-                userId = auth.currentUser?.uid || crypto.randomUUID();
                 
                 document.getElementById('syncStatus').textContent = "Sincronizado con Firebase";
                 document.getElementById('syncStatus').className = "text-emerald-600 font-medium";
-
-                // Start real-time cloud listener
                 subscribeToData();
 
             } catch (err) {
-                console.error("Firebase initialization error:", err);
-                document.getElementById('syncStatus').textContent = "Modo local (Sin conexión)";
+                console.error("Error Firebase:", err);
+                
+                let errorMessage = "Modo local (Sin conexión)";
+                
+                if (err.code === 'auth/operation-not-allowed' || err.code === 'auth/admin-restricted-operation') {
+                    errorMessage = "Falta activar Auth en Firebase";
+                    showCustomMessage(
+                        'Paso final requerido en Firebase', 
+                        'Para guardar en la nube, debes ir a la consola de Firebase > Authentication > Sign-in method, y habilitar el inicio de sesión "Anónimo".', 
+                        'fa-solid fa-triangle-exclamation', 
+                        'text-rose-600 bg-rose-50'
+                    );
+                }
+
+                document.getElementById('syncStatus').textContent = errorMessage;
                 document.getElementById('syncStatus').className = "text-rose-600 font-medium";
                 loadLocalFallback();
             }
         }
 
         function subscribeToData() {
-            // Rule 1 compliant path
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'vacation_records');
+            if (!auth || !auth.currentUser) return;
             
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'vacation_records');
             onSnapshot(docRef, (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -293,17 +299,16 @@
                         renderApp();
                     }
                 } else {
-                    // Initialize document if empty
                     saveCloudData();
                 }
             }, (error) => {
-                console.error("Error reading cloud data:", error);
+                console.error("Error al leer datos:", error);
             });
         }
 
         window.saveCloudData = async function() {
             renderApp();
-            if (!db) {
+            if (!db || !auth || !auth.currentUser) {
                 localStorage.setItem('household_vacation_data_offline', JSON.stringify(window.appData));
                 return;
             }
@@ -311,7 +316,7 @@
                 const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'vacation_records');
                 await setDoc(docRef, window.appData);
             } catch (err) {
-                console.error("Error saving to cloud:", err);
+                console.error("Error guardando en la nube:", err);
             }
         }
 
@@ -335,32 +340,22 @@
 
         window.renderApp = function() {
             const year = getCurrentYear();
-            if (!window.appData.years[year]) {
-                window.appData.years[year] = { totalVacationDays: 30, absences: [] };
-            }
+            if (!window.appData.years[year]) window.appData.years[year] = { totalVacationDays: 30, absences: [] };
+            
             const yearData = window.appData.years[year];
-
             document.getElementById('totalVacationDaysText').textContent = yearData.totalVacationDays;
             document.getElementById('kpiTotal').textContent = yearData.totalVacationDays + ' días';
 
-            let usedVacation = 0;
-            let otherAbsencesDays = 0;
-
+            let usedVacation = 0, otherAbsencesDays = 0;
             yearData.absences.forEach(item => {
                 const days = parseFloat(item.days) || 0;
-                if (item.type === 'Vacaciones') {
-                    usedVacation += days;
-                } else {
-                    otherAbsencesDays += days;
-                }
+                if (item.type === 'Vacaciones') usedVacation += days;
+                else otherAbsencesDays += days;
             });
 
-            const pendingVacation = Math.max(0, yearData.totalVacationDays - usedVacation);
-
             document.getElementById('kpiUsed').textContent = usedVacation + ' días';
-            document.getElementById('kpiPending').textContent = pendingVacation + ' días';
+            document.getElementById('kpiPending').textContent = Math.max(0, yearData.totalVacationDays - usedVacation) + ' días';
             document.getElementById('kpiOthers').textContent = otherAbsencesDays + ' días';
-
             renderTable();
         }
 
@@ -372,12 +367,8 @@
             const emptyState = document.getElementById('emptyState');
             
             tbody.innerHTML = '';
-
             let filtered = yearData.absences;
-            if (filterType !== 'ALL') {
-                filtered = filtered.filter(item => item.type === filterType);
-            }
-
+            if (filterType !== 'ALL') filtered = filtered.filter(item => item.type === filterType);
             filtered.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
 
             if (filtered.length === 0) {
@@ -390,7 +381,6 @@
             filtered.forEach(item => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 transition';
-
                 let badgeClass = 'bg-slate-100 text-slate-700';
                 if (item.type === 'Vacaciones') badgeClass = 'bg-blue-50 text-blue-700';
                 else if (item.type === 'Baja Médica') badgeClass = 'bg-rose-50 text-rose-700';
@@ -399,22 +389,14 @@
                 else if (item.type === 'Festivo') badgeClass = 'bg-purple-50 text-purple-700';
 
                 tr.innerHTML = `
-                    <td class="py-4 px-6 font-medium">
-                        <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${badgeClass}">
-                            ${item.type}
-                        </span>
-                    </td>
+                    <td class="py-4 px-6 font-medium"><span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${badgeClass}">${item.type}</span></td>
                     <td class="py-4 px-6 text-slate-600">${formatDateStr(item.startDate)}</td>
                     <td class="py-4 px-6 text-slate-600">${formatDateStr(item.endDate)}</td>
                     <td class="py-4 px-6 font-semibold text-slate-800">${item.days} ${item.days == 1 ? 'día' : 'días'}</td>
-                    <td class="py-4 px-6 text-slate-500 max-w-xs truncate">${item.notes || '<span class="text-slate-300 italic">Sin observaciones</span>'}</td>
+                    <td class="py-4 px-6 text-slate-500 max-w-xs truncate">${item.notes || '<span class="text-slate-300 italic">Sin notas</span>'}</td>
                     <td class="py-4 px-6 text-right space-x-2">
-                        <button onclick="editAbsence('${item.id}')" class="text-slate-400 hover:text-indigo-600 p-1.5 transition" title="Editar">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
-                        <button onclick="deleteAbsence('${item.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 transition" title="Eliminar">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
+                        <button onclick="editAbsence('${item.id}')" class="text-slate-400 hover:text-indigo-600 p-1.5 transition" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteAbsence('${item.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 transition" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -424,17 +406,14 @@
         function formatDateStr(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
-            if (parts.length !== 3) return dateStr;
-            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
         }
 
         window.openModal = function(id = null) {
-            const modal = document.getElementById('absenceModal');
-            const form = document.getElementById('absenceForm');
-            form.reset();
+            document.getElementById('absenceForm').reset();
             document.getElementById('absenceId').value = '';
             document.getElementById('modalTitle').textContent = 'Registrar Nueva Ausencia';
-
+            
             const todayStr = new Date().toISOString().split('T')[0];
             document.getElementById('formStartDate').value = todayStr;
             document.getElementById('formEndDate').value = todayStr;
@@ -453,8 +432,7 @@
                     document.getElementById('formNotes').value = item.notes || '';
                 }
             }
-
-            modal.classList.remove('hidden');
+            document.getElementById('absenceModal').classList.remove('hidden');
         }
 
         window.closeModal = function() {
@@ -465,12 +443,9 @@
             const start = document.getElementById('formStartDate').value;
             const end = document.getElementById('formEndDate').value;
             if (start && end) {
-                const startDate = new Date(start);
-                const endDate = new Date(end);
-                if (endDate >= startDate) {
-                    const diffTime = Math.abs(endDate - startDate);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                    document.getElementById('formDays').value = diffDays;
+                const diffTime = new Date(end) - new Date(start);
+                if (diffTime >= 0) {
+                    document.getElementById('formDays').value = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
                 }
             }
         }
@@ -490,60 +465,40 @@
                 return;
             }
 
-            if (!window.appData.years[year]) {
-                window.appData.years[year] = { totalVacationDays: 30, absences: [] };
-            }
-
             if (id) {
                 const index = window.appData.years[year].absences.findIndex(x => x.id === id);
-                if (index !== -1) {
-                    window.appData.years[year].absences[index] = { id, type, startDate, endDate, days, notes };
-                }
+                if (index !== -1) window.appData.years[year].absences[index] = { id, type, startDate, endDate, days, notes };
             } else {
-                const newId = 'abs_' + Date.now() + Math.random().toString(36.substr(2, 5));
-                window.appData.years[year].absences.push({ id: newId, type, startDate, endDate, days, notes });
+                window.appData.years[year].absences.push({ id: 'abs_' + Date.now(), type, startDate, endDate, days, notes });
             }
 
             saveCloudData();
             closeModal();
         }
 
-        window.editAbsence = function(id) {
-            openModal(id);
-        }
-
+        window.editAbsence = function(id) { openModal(id); }
         window.deleteAbsence = function(id) {
-            const year = getCurrentYear();
-            window.appData.years[year].absences = window.appData.years[year].absences.filter(x => x.id !== id);
+            window.appData.years[getCurrentYear()].absences = window.appData.years[getCurrentYear()].absences.filter(x => x.id !== id);
             saveCloudData();
         }
 
         window.editTotalDays = function() {
             const year = getCurrentYear();
-            const currentTotal = window.appData.years[year] ? window.appData.years[year].totalVacationDays : 30;
-            const newTotalStr = prompt('Introduce el total de días de vacaciones anuales para ' + year + ':', currentTotal);
-            if (newTotalStr !== null) {
-                const newTotal = parseFloat(newTotalStr);
-                if (!isNaN(newTotal) && newTotal >= 0) {
-                    if (!window.appData.years[year]) {
-                        window.appData.years[year] = { totalVacationDays: 30, absences: [] };
-                    }
-                    window.appData.years[year].totalVacationDays = newTotal;
-                    saveCloudData();
-                } else {
-                    showCustomMessage('Valor inválido', 'Por favor, introduce un número válido.', 'fa-solid fa-triangle-exclamation', 'text-rose-600 bg-rose-50');
-                }
+            const newTotal = parseFloat(prompt('Total de días de vacaciones anuales:', window.appData.years[year].totalVacationDays));
+            if (!isNaN(newTotal) && newTotal >= 0) {
+                window.appData.years[year].totalVacationDays = newTotal;
+                saveCloudData();
             }
         }
 
         window.exportData = function() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appData, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "registro_vacaciones_empleada.json");
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = "registro_vacaciones.json";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
         }
 
         window.importData = function(event) {
@@ -552,27 +507,21 @@
                 fileReader.readAsText(event.target.files[0], "UTF-8");
                 fileReader.onload = function(e) {
                     try {
-                        const parsed = JSON.parse(e.target.result);
-                        if (parsed && parsed.years) {
-                            window.appData = parsed;
-                            saveCloudData();
-                            showCustomMessage('Importación exitosa', 'Los datos se han cargado correctamente en Firebase.', 'fa-solid fa-circle-check', 'text-emerald-600 bg-emerald-50');
-                        } else {
-                            throw new Error('Formato inválido');
-                        }
+                        window.appData = JSON.parse(e.target.result);
+                        saveCloudData();
+                        showCustomMessage('Éxito', 'Datos cargados correctamente.', 'fa-solid fa-circle-check', 'text-emerald-600 bg-emerald-50');
                     } catch (err) {
-                        showCustomMessage('Error de importación', 'El archivo no tiene el formato correcto.', 'fa-solid fa-triangle-exclamation', 'text-rose-600 bg-rose-50');
+                        showCustomMessage('Error', 'Archivo inválido.', 'fa-solid fa-triangle-exclamation', 'text-rose-600 bg-rose-50');
                     }
                 };
             }
         }
 
-        window.showCustomMessage = function(title, text, iconClass = 'fa-solid fa-info', iconBoxClass = 'text-indigo-600 bg-indigo-50') {
+        window.showCustomMessage = function(title, text, iconClass, iconBoxClass) {
             document.getElementById('messageTitle').textContent = title;
             document.getElementById('messageText').textContent = text;
-            const iconDiv = document.getElementById('messageIcon');
-            iconDiv.className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl ${iconBoxClass}`;
-            iconDiv.innerHTML = `<i class="${iconClass}"></i>`;
+            document.getElementById('messageIcon').className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl ${iconBoxClass}`;
+            document.getElementById('messageIcon').innerHTML = `<i class="${iconClass}"></i>`;
             document.getElementById('messageModal').classList.remove('hidden');
         }
 
@@ -580,10 +529,11 @@
             document.getElementById('messageModal').classList.add('hidden');
         }
 
-        // Start initialization on window load
-        window.onload = function() {
-            initFirebase();
-        };
+        // Llamamos a renderApp() instantáneamente para que la app cargue (Arregla el bug de los botones)
+        renderApp();
+        
+        // Arrancamos la conexión a Firebase en segundo plano
+        initFirebase();
     </script>
 </body>
 </html>
