@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Vacaciones y Ausencias</title>
+    <title>Área Personal - Calendario y Nóminas</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Configuración para activar el modo oscuro por clase -->
@@ -55,17 +55,28 @@
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen flex flex-col justify-between transition-colors duration-200">
 
     <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 transition-colors duration-200">
-        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center space-x-3">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3 w-full lg:w-auto">
                 <div class="bg-indigo-600 dark:bg-indigo-500 text-white p-2.5 rounded-xl shadow-md">
-                    <i class="fa-solid fa-calendar-days text-xl"></i>
+                    <i class="fa-solid fa-user"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-900 dark:text-white">Control de Vacaciones</h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Gestión de Empleada del Hogar • <span id="syncStatus" class="text-amber-600 dark:text-amber-400 font-medium">Conectando a Firebase...</span></p>
+                    <h1 class="text-xl font-bold text-slate-900 dark:text-white">Área Personal</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Portal del Empleado • <span id="syncStatus" class="text-amber-600 dark:text-amber-400 font-medium">Conectando...</span></p>
                 </div>
             </div>
-            <div class="flex items-center space-x-3 w-full sm:w-auto justify-end">
+            
+            <!-- Nuevo Menú de Navegación -->
+            <nav class="flex w-full lg:w-auto p-1 space-x-1 bg-slate-100 dark:bg-slate-900/50 rounded-xl">
+                <a href="vacation_tracker.html" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-indigo-400 pointer-events-none">
+                    <i class="fa-solid fa-umbrella-beach"></i> <span>Vacaciones</span>
+                </a>
+                <a href="citas_medicas.html" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition">
+                    <i class="fa-solid fa-briefcase-medical"></i> <span>Citas Médicas</span>
+                </a>
+            </nav>
+
+            <div class="flex items-center space-x-3 w-full lg:w-auto justify-end">
                 <button onclick="toggleDarkMode()" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium px-3 py-2 rounded-xl transition flex items-center justify-center cursor-pointer" title="Cambiar tema (Modo claro/oscuro)">
                     <i class="fa-solid fa-moon" id="themeIcon"></i>
                 </button>
@@ -274,7 +285,7 @@
 
     <footer class="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-400 dark:text-slate-500 transition-colors duration-200">
         <div class="max-w-6xl mx-auto px-4">
-            Gestión interna de vacaciones • Sincronización automática con Firebase Cloud Firestore
+            Gestión de Área Personal • Sincronización automática con Firebase Cloud
         </div>
     </footer>
 
@@ -315,18 +326,21 @@
                 subscribeToData();
 
             } catch (err) {
+                console.error(err);
                 document.getElementById('syncStatus').textContent = "Modo local (Sin conexión)";
                 document.getElementById('syncStatus').className = "text-rose-600 dark:text-rose-400 font-medium";
                 
-                // Pantalla gigante de error si falla la conexión
                 document.body.innerHTML = `
-                    <div style="padding:40px; text-align:center; font-family:sans-serif; background:#fef2f2; height:100vh; color:#991b1b;">
-                        <h1 style="font-size:24px; font-weight:bold; margin-bottom:10px;">¡Ups! Conexión a Firebase bloqueada</h1>
-                        <p style="margin-bottom:20px;">Por favor, copia el texto rojo de abajo y compártelo con el asistente para arreglarlo:</p>
-                        <div style="background:white; padding:20px; border-radius:8px; border:2px solid #f87171; font-family:monospace; color:#dc2626; text-align:left; max-width:600px; margin:0 auto; overflow-wrap: break-word;">
+                    <div style="padding:40px; text-align:center; font-family:sans-serif; background:#fef2f2; height:100vh; color:#991b1b; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                        <div style="font-size:50px; margin-bottom:20px;">⚠️</div>
+                        <h1 style="font-size:24px; font-weight:bold; margin-bottom:10px;">Conexión a Firebase Rechazada</h1>
+                        <p style="margin-bottom:20px;">Tu navegador está bloqueando la conexión o falta un paso de seguridad.</p>
+                        <div style="background:white; padding:20px; border-radius:12px; border:2px solid #f87171; font-family:monospace; color:#dc2626; text-align:left; max-width:800px; width:100%; overflow-wrap: break-word; font-size:14px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            <strong>Código del error:</strong><br><br>
                             ${err.message}
                         </div>
-                        <p style="margin-top:20px; font-size:14px; color:#7f1d1d;">(También puedes pulsar F5 para reintentar)</p>
+                        <p style="margin-top:30px; font-size:15px; color:#7f1d1d; font-weight:500;">Copíame el texto rojo de la caja blanca y pégalo en el chat para que te dé la solución exacta.</p>
+                        <button onclick="window.location.reload(true)" style="margin-top:20px; background:#dc2626; color:white; border:none; padding:10px 20px; border-radius:8px; font-size:16px; cursor:pointer;">Recargar Página</button>
                     </div>
                 `;
             }
@@ -352,24 +366,13 @@
 
         window.saveCloudData = async function() {
             renderApp();
-            if (!db || !auth || !auth.currentUser) {
-                localStorage.setItem('household_vacation_data_offline', JSON.stringify(window.appData));
-                return;
-            }
+            if (!db || !auth || !auth.currentUser) return;
             try {
                 const docRef = doc(db, 'registros', 'vacaciones');
                 await setDoc(docRef, window.appData);
             } catch (err) {
-                showCustomMessage('Error al guardar', err.message, 'fa-solid fa-cloud-arrow-up', 'text-rose-600 bg-rose-50 dark:bg-rose-900/30 dark:text-rose-400');
+                console.error(err);
             }
-        }
-
-        function loadLocalFallback() {
-            const saved = localStorage.getItem('household_vacation_data_offline');
-            if (saved) {
-                try { window.appData = JSON.parse(saved); } catch(e) {}
-            }
-            renderApp();
         }
 
         window.getCurrentYear = function() {
@@ -383,7 +386,6 @@
         window.renderApp = function() {
             const year = getCurrentYear();
             
-            // Garantizar que la estructura existe (compatibilidad hacia atrás)
             if (!window.appData.years[year]) window.appData.years[year] = { totalVacationDays: 30, carryoverDays: 0, absences: [] };
             
             const yearData = window.appData.years[year];
@@ -391,11 +393,9 @@
             const carryoverDays = yearData.carryoverDays || 0;
             const totalAvailable = baseDays + carryoverDays;
 
-            // Actualizar textos en la cabecera
             document.getElementById('baseDaysText').textContent = baseDays;
             document.getElementById('carryoverDaysText').textContent = carryoverDays;
             
-            // Actualizar tarjeta principal
             document.getElementById('kpiTotal').textContent = totalAvailable + ' días';
 
             let usedVacation = 0, otherAbsencesDays = 0;
@@ -513,7 +513,7 @@
             const notes = document.getElementById('formNotes').value;
 
             if (new Date(endDate) < new Date(startDate)) {
-                showCustomMessage('Error en fechas', 'La fecha de fin no puede ser anterior a la fecha de inicio.', 'fa-solid fa-triangle-exclamation', 'text-rose-600 bg-rose-50 dark:bg-rose-900/30 dark:text-rose-400');
+                alert('La fecha de fin no puede ser anterior a la fecha de inicio.');
                 return;
             }
 
@@ -534,7 +534,6 @@
             saveCloudData();
         }
 
-        // --- Nuevas funciones de edición divididas ---
         window.editBaseDays = function() {
             const year = getCurrentYear();
             const currentBase = window.appData.years[year].totalVacationDays || 30;
@@ -573,28 +572,24 @@
                     try {
                         window.appData = JSON.parse(e.target.result);
                         saveCloudData();
-                        showCustomMessage('Éxito', 'Datos cargados correctamente.', 'fa-solid fa-circle-check', 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400');
+                        alert('Datos cargados correctamente.');
                     } catch (err) {
-                        showCustomMessage('Error', 'Archivo inválido.', 'fa-solid fa-triangle-exclamation', 'text-rose-600 bg-rose-50 dark:bg-rose-900/30 dark:text-rose-400');
+                        alert('Error: Archivo inválido.');
                     }
                 };
             }
-        }
-
-        window.showCustomMessage = function(title, text, iconClass, iconBoxClass) {
-            document.getElementById('messageTitle').textContent = title;
-            document.getElementById('messageText').innerText = text;
-            document.getElementById('messageIcon').className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 text-xl ${iconBoxClass}`;
-            document.getElementById('messageIcon').innerHTML = `<i class="${iconClass}"></i>`;
-            document.getElementById('messageModal').classList.remove('hidden');
         }
 
         window.closeMessageModal = function() {
             document.getElementById('messageModal').classList.add('hidden');
         }
 
-        // Inicializar
-        initFirebase();
+        // Initialize Firebase on load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initFirebase);
+        } else {
+            initFirebase();
+        }
     </script>
 </body>
 </html>
