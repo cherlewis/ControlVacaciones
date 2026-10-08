@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citas Médicas - Área Personal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
+    <!-- Script modo oscuro -->
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcon();
+        }
+        function updateThemeIcon() {
+            const icon = document.getElementById('themeIcon');
+            if (icon) icon.className = document.documentElement.classList.contains('dark') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+        document.addEventListener("DOMContentLoaded", updateThemeIcon);
+    </script>
+    <!-- FontAwesome y Fuentes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-calendar-picker-indicator { filter: invert(var(--tw-invert, 0)); cursor: pointer; }
+        ::-webkit-time-picker-indicator { filter: invert(var(--tw-invert, 0)); cursor: pointer; }
+        .dark { --tw-invert: 1; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 min-h-screen flex flex-col justify-between transition-colors duration-200">
+
+    <header class="bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 transition-colors duration-200">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3 w-full lg:w-auto">
+                <div class="bg-teal-600 dark:bg-teal-500 text-white p-2.5 rounded-xl shadow-md">
+                    <i class="fa-solid fa-notes-medical text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 dark:text-white">Área Personal</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Salud y Seguimiento • <span id="syncStatus" class="text-amber-600 dark:text-amber-400 font-medium">Conectando...</span></p>
+                </div>
+            </div>
+            
+            <nav class="flex w-full lg:w-auto p-1 space-x-1 bg-slate-100 dark:bg-slate-900/50 rounded-xl">
+                <a href="vacation_tracker.html" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition">
+                    <i class="fa-solid fa-umbrella-beach"></i> <span>Vacaciones</span>
+                </a>
+                <a href="citas_medicas.html" class="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-white dark:bg-slate-700 shadow-sm text-teal-600 dark:text-teal-400 pointer-events-none">
+                    <i class="fa-solid fa-briefcase-medical"></i> <span>Citas Médicas</span>
+                </a>
+            </nav>
+
+            <div class="flex items-center space-x-3 w-full lg:w-auto justify-end">
+                <button onclick="toggleDarkMode()" class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm font-medium px-3 py-2 rounded-xl transition flex items-center justify-center cursor-pointer" title="Cambiar tema">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                </button>
+                <button onclick="openModal()" class="bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-xl shadow-sm transition flex items-center gap-2 cursor-pointer w-full sm:w-auto justify-center">
+                    <i class="fa-solid fa-plus"></i> Añadir Cita
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full space-y-8">
+        
+        <!-- Próximas Citas -->
+        <div>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Próximas Citas</h2>
+            </div>
+            
+            <div id="upcomingList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Se rellena por JS -->
+            </div>
+            <div id="upcomingEmpty" class="hidden p-8 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 border-dashed">
+                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">No hay citas médicas futuras programadas.</p>
+            </div>
+        </div>
+
+        <!-- Historial de Citas (Pasadas) -->
+        <div>
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Historial de Visitas</h2>
+            </div>
+            
+            <div id="pastList" class="flex flex-col gap-3">
+                <!-- Se rellena por JS -->
+            </div>
+            <div id="pastEmpty" class="hidden p-8 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 border-dashed">
+                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Aún no hay visitas en el historial.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Nueva Cita -->
+    <div id="appointmentModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-xl max-w-lg w-full overflow-hidden transform transition-all border border-slate-200 dark:border-slate-700">
+            <div class="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-stethoscope text-teal-600 dark:text-teal-400"></i> Registrar Cita Médica</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-2 rounded-lg transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="appointmentForm" onsubmit="saveAppointment(event)" class="p-6 space-y-4">
+                <input type="hidden" id="appId">
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Fecha</label>
+                        <input type="date" id="formDate" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Hora</label>
+                        <input type="time" id="formTime" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Especialidad</label>
+                        <input type="text" id="formSpecialty" placeholder="Ej: Cardiología..." required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Nombre del Médico</label>
+                        <input type="text" id="formDoctor" placeholder="Dr/a. García..." required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Hospital / Centro de Salud</label>
+                    <input type="text" id="formLocation" placeholder="Ej: Hospital Clínico, Planta 2..." required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Motivo de la visita</label>
+                    <input type="text" id="formReason" placeholder="Revisión anual, dolores, resultados..." required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">Notas del Diagnóstico (Opcional)</label>
+                    <textarea id="formNotes" rows="2" placeholder="Indicaciones del médico, medicación recetada..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition">Cancelar</button>
+                    <button type="submit" class="bg-teal-600 hover:bg-teal-700 dark:bg-teal-500 dark:hover:bg-teal-600 text-white text-sm font-medium px-5 py-2 rounded-xl shadow-sm transition">Guardar Cita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Misma configuracion que en vacaciones
+        const firebaseConfig = {
+          apiKey: "AIzaSyA4B7ccFJatxZ74uy3yt60U9JZm310NrIc",
+          authDomain: "controlvacacioneshogar.firebaseapp.com",
+          projectId: "controlvacacioneshogar",
+          storageBucket: "controlvacacioneshogar.firebasestorage.app",
+          messagingSenderId: "982125387061",
+          appId: "1:982125387061:web:bb5a41520c232a1214007c"
+        };
+
+        window.appData = { appointments: [] };
+        let db, auth;
+
+        async function initFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                await signInAnonymously(auth);
+                
+                document.getElementById('syncStatus').textContent = "Sincronizado";
+                document.getElementById('syncStatus').className = "text-teal-600 dark:text-teal-400 font-medium";
+                subscribeToData();
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('syncStatus').textContent = "Modo local (Sin conexión)";
+                document.getElementById('syncStatus').className = "text-rose-600 dark:text-rose-400 font-medium";
+            }
+        }
+
+        function subscribeToData() {
+            if (!auth || !auth.currentUser) return;
+            // Guardamos en un documento distinto llamado 'citas_medicas'
+            const docRef = doc(db, 'registros', 'citas_medicas');
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    window.appData = docSnap.data();
+                    if (!window.appData.appointments) window.appData.appointments = [];
+                    renderApp();
+                } else {
+                    saveCloudData();
+                }
+            }, (err) => console.error("Error al suscribirse", err));
+        }
+
+        window.saveCloudData = async function() {
+            renderApp();
+            if (!db || !auth || !auth.currentUser) return;
+            try {
+                const docRef = doc(db, 'registros', 'citas_medicas');
+                await setDoc(docRef, window.appData);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        window.renderApp = function() {
+            const upcomingList = document.getElementById('upcomingList');
+            const pastList = document.getElementById('pastList');
+            const upcomingEmpty = document.getElementById('upcomingEmpty');
+            const pastEmpty = document.getElementById('pastEmpty');
+            
+            upcomingList.innerHTML = '';
+            pastList.innerHTML = '';
+
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            let upcoming = [];
+            let past = [];
+
+            window.appData.appointments.forEach(app => {
+                const appDate = new Date(app.date);
+                if (appDate >= today) upcoming.push(app);
+                else past.push(app);
+            });
+
+            // Ordenar próximas: La más inminente primero (ascendente)
+            upcoming.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+            // Ordenar pasadas: La más reciente primero (descendente)
+            past.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
+
+            // Rellenar Próximas
+            if (upcoming.length === 0) {
+                upcomingEmpty.classList.remove('hidden');
+            } else {
+                upcomingEmpty.classList.add('hidden');
+                upcoming.forEach(app => upcomingList.appendChild(createAppointmentCard(app, true)));
+            }
+
+            // Rellenar Pasadas
+            if (past.length === 0) {
+                pastEmpty.classList.remove('hidden');
+            } else {
+                pastEmpty.classList.add('hidden');
+                past.forEach(app => pastList.appendChild(createAppointmentListRow(app)));
+            }
+        }
+
+        function formatDateStr(dateStr) {
+            const parts = dateStr.split('-');
+            return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
+        }
+
+        function createAppointmentCard(app, isUpcoming) {
+            const div = document.createElement('div');
+            div.className = 'bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border-l-4 border-slate-100 dark:border-slate-700 border-l-teal-500 flex flex-col transition-colors duration-200';
+            
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-bold text-teal-600 dark:text-teal-400">${formatDateStr(app.date)}</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400"><i class="fa-regular fa-clock"></i> ${app.time}h</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editAppointment('${app.id}')" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition" title="Editar"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteAppointment('${app.id}')" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition" title="Borrar"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <h4 class="font-bold text-slate-900 dark:text-white leading-tight">${app.specialty}</h4>
+                    <p class="text-sm text-slate-600 dark:text-slate-300 mt-1">${app.reason}</p>
+                </div>
+                <div class="mt-auto space-y-1 bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl text-xs text-slate-600 dark:text-slate-400">
+                    <p><i class="fa-solid fa-user-doctor w-4 text-center"></i> <span class="font-medium text-slate-800 dark:text-slate-200">${app.doctor}</span></p>
+                    <p><i class="fa-solid fa-location-dot w-4 text-center"></i> ${app.location}</p>
+                    ${app.notes ? `<p class="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700 italic"><i class="fa-solid fa-note-sticky w-4 text-center"></i> ${app.notes}</p>` : ''}
+                </div>
+            `;
+            return div;
+        }
+
+        function createAppointmentListRow(app) {
+            const div = document.createElement('div');
+            div.className = 'bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between transition-colors duration-200';
+            
+            div.innerHTML = `
+                <div class="flex items-center gap-4 w-full sm:w-auto">
+                    <div class="bg-slate-50 dark:bg-slate-900 text-center rounded-lg p-2 min-w-[70px] border border-slate-100 dark:border-slate-700">
+                        <div class="text-xs text-slate-500 font-semibold">${formatDateStr(app.date).substring(3)}</div>
+                        <div class="text-lg font-bold text-slate-800 dark:text-white">${app.date.split('-')[2]}</div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-slate-900 dark:text-white text-sm">${app.specialty} <span class="text-xs font-normal text-slate-500 ml-1">• ${app.doctor}</span></h4>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 mt-0.5">${app.location}</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-500 italic mt-1 truncate max-w-sm">${app.reason} ${app.notes ? '- ' + app.notes : ''}</p>
+                    </div>
+                </div>
+                <div class="flex sm:flex-col gap-3 sm:gap-1 items-end w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-0 border-slate-100 dark:border-slate-700">
+                    <div class="flex gap-3">
+                        <button onclick="editAppointment('${app.id}')" class="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteAppointment('${app.id}')" class="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+            return div;
+        }
+
+        window.openModal = function(id = null) {
+            document.getElementById('appointmentForm').reset();
+            document.getElementById('appId').value = '';
+            document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-stethoscope text-teal-600 dark:text-teal-400"></i> Registrar Cita Médica';
+            
+            const now = new Date();
+            document.getElementById('formDate').value = now.toISOString().split('T')[0];
+            document.getElementById('formTime').value = now.toTimeString().substring(0,5);
+
+            if (id) {
+                const app = window.appData.appointments.find(x => x.id === id);
+                if (app) {
+                    document.getElementById('modalTitle').innerHTML = '<i class="fa-solid fa-pen text-teal-600 dark:text-teal-400"></i> Editar Cita Médica';
+                    document.getElementById('appId').value = app.id;
+                    document.getElementById('formDate').value = app.date;
+                    document.getElementById('formTime').value = app.time;
+                    document.getElementById('formSpecialty').value = app.specialty;
+                    document.getElementById('formDoctor').value = app.doctor;
+                    document.getElementById('formLocation').value = app.location;
+                    document.getElementById('formReason').value = app.reason;
+                    document.getElementById('formNotes').value = app.notes || '';
+                }
+            }
+            document.getElementById('appointmentModal').classList.remove('hidden');
+        }
+
+        window.closeModal = function() {
+            document.getElementById('appointmentModal').classList.add('hidden');
+        }
+
+        window.saveAppointment = function(event) {
+            event.preventDefault();
+            const id = document.getElementById('appId').value;
+            const appData = {
+                id: id || 'med_' + Date.now(),
+                date: document.getElementById('formDate').value,
+                time: document.getElementById('formTime').value,
+                specialty: document.getElementById('formSpecialty').value,
+                doctor: document.getElementById('formDoctor').value,
+                location: document.getElementById('formLocation').value,
+                reason: document.getElementById('formReason').value,
+                notes: document.getElementById('formNotes').value
+            };
+
+            if (id) {
+                const index = window.appData.appointments.findIndex(x => x.id === id);
+                if (index !== -1) window.appData.appointments[index] = appData;
+            } else {
+                window.appData.appointments.push(appData);
+            }
+
+            saveCloudData();
+            closeModal();
+        }
+
+        window.editAppointment = function(id) { openModal(id); }
+        
+        window.deleteAppointment = function(id) {
+            if(confirm("¿Seguro que quieres borrar esta cita del historial?")) {
+                window.appData.appointments = window.appData.appointments.filter(x => x.id !== id);
+                saveCloudData();
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initFirebase);
+        } else {
+            initFirebase();
+        }
+    </script>
+</body>
+</html>
